@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/books/{bookId} {
+      function owner() { return request.auth != null && request.auth.uid == userId; }
+      function validBook() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['book', 'favorite', 'read', 'rating', 'updatedAt'])
+          && d.book is map && d.book.id == bookId && bookId.matches('OL[0-9]+W')
+          && d.book.keys().hasOnly(['id', 'title', 'authors', 'coverId', 'firstPublishYear', 'editionCount'])
+          && d.book.title is string && d.book.title.size() <= 2000
+          && d.book.authors is list && d.book.authors.size() <= 100
+          && (d.book.coverId == null || d.book.coverId is number)
+          && (d.book.firstPublishYear == null || d.book.firstPublishYear is number)
+          && (d.book.editionCount == null || d.book.editionCount is number)
+          && d.favorite is bool && d.read is bool
+          && (d.rating == null || (d.rating is int && d.rating >= 1 && d.rating <= 5))
+          && (d.read || d.rating == null)
+          && d.updatedAt is number && d.updatedAt > 0;
+      }
+      allow read: if owner();
+      allow create: if owner() && validBook();
+      allow update: if owner() && validBook() && request.resource.data.updatedAt >= resource.data.updatedAt;
+      allow delete: if false;
+    }
+  }
+}
