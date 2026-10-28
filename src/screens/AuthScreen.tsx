@@ -5,25 +5,28 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '../components/Icon';
 import type { RootStackParamList } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { ErrorBanner } from '../components/Feedback';
 import { colors, common, serif } from '../theme';
+import { Text, TextInput } from '../components/Typography';
+import { decorativeAccessibility, selectionAccessibilityState } from '../utils/accessibility';
+import { announce } from '../utils/announce';
+import { usePageFocus } from '../hooks/usePageFocus';
 
 export function AuthScreen({
   navigation,
   route,
 }: NativeStackScreenProps<RootStackParamList, 'Login' | 'Register'>) {
   const register = route.name === 'Register';
+  const titleRef = usePageFocus(navigation);
   const auth = useAuth();
   const { width, fontScale } = useWindowDimensions();
   const wide = width >= 850 && fontScale < 1.4;
@@ -84,7 +87,16 @@ export function AuthScreen({
             </View>
             <View style={[styles.form, wide && { flex: 1 }]}>
               <Text style={common.eyebrow}>SUA ESTANTE PESSOAL</Text>
-              <Text accessibilityRole="header" style={common.title}>
+              <Text
+                ref={titleRef}
+                accessible
+                accessibilityRole="header"
+                accessibilityLabel={
+                  register ? 'Criar conta. Comece sua coleção.' : 'Entrar na conta. Que bom te ver.'
+                }
+                {...(Platform.OS === 'web' ? { tabIndex: -1 } : {})}
+                style={common.title}
+              >
                 {register ? 'Comece sua coleção.' : 'Que bom te ver.'}
               </Text>
               <Text style={common.subtitle}>
@@ -130,7 +142,9 @@ export function AuthScreen({
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.label}>Senha</Text>
+                <Text {...decorativeAccessibility} style={styles.label}>
+                  Senha · mínimo 8 caracteres
+                </Text>
                 <View style={styles.password}>
                   <TextInput
                     accessible
@@ -148,16 +162,21 @@ export function AuthScreen({
                       if (!register) void submit();
                     }}
                     returnKeyType="go"
-                    placeholder="Pelo menos 8 caracteres"
+                    placeholder={register ? 'Crie sua senha' : 'Digite sua senha'}
                     placeholderTextColor={colors.muted}
                     style={[styles.input, styles.passwordInput]}
                   />
                   <Pressable
                     accessible
+                    accessibilityLanguage="pt-BR"
                     accessibilityRole="button"
                     accessibilityLabel={visible ? 'Ocultar senha' : 'Mostrar senha'}
-                    accessibilityState={{ selected: visible }}
-                    onPress={() => setVisible((value) => !value)}
+                    accessibilityState={selectionAccessibilityState(visible)}
+                    {...(Platform.OS === 'web' ? { 'aria-pressed': visible } : {})}
+                    onPress={() => {
+                      setVisible(!visible);
+                      announce(visible ? 'Senha oculta.' : 'Senha visível.');
+                    }}
                     style={styles.eye}
                   >
                     <Ionicons
@@ -263,7 +282,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   source: { color: '#E9DDCB', fontSize: 10, letterSpacing: 2 },
-  form: { padding: 28, gap: 18, justifyContent: 'center' },
+  form: { padding: 20, gap: 18, justifyContent: 'center', minWidth: 0 },
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: '600', color: colors.ink },
   input: {

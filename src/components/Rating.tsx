@@ -1,14 +1,19 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Typography';
+import { Ionicons } from './Icon';
 import { colors } from '../theme';
+import { loadingAccessibilityState, selectionAccessibilityState } from '../utils/accessibility';
+import { announce } from '../utils/announce';
 
 export function Rating({
   value,
-  disabled,
+  disabled = false,
+  busy = false,
   onChange,
 }: {
   value: number | null;
-  disabled: boolean;
+  disabled?: boolean;
+  busy?: boolean;
   onChange: (rating: number) => void;
 }) {
   return (
@@ -16,20 +21,37 @@ export function Rating({
       <Text style={styles.label}>
         {value ? `Sua nota: ${value} de 5` : 'Como foi essa leitura?'}
       </Text>
-      <View
-        style={styles.stars}
-        accessibilityRole="radiogroup"
-        accessibilityLabel="Avaliar livro de 1 a 5 estrelas"
-      >
+      <View accessible={false} style={styles.stars}>
         {[1, 2, 3, 4, 5].map((star) => (
           <Pressable
             key={star}
             accessible
-            accessibilityRole="radio"
-            accessibilityLabel={`${star} ${star === 1 ? 'estrela' : 'estrelas'}`}
-            accessibilityState={{ checked: value === star, disabled }}
+            accessibilityLanguage="pt-BR"
+            accessibilityRole="button"
+            role="button"
+            accessibilityLabel={`${
+              value === star
+                ? `Sua nota atual: ${star} de 5 estrelas`
+                : `${value == null ? 'Dar' : 'Mudar para'} nota ${star} de 5 estrelas`
+            }${busy ? '. Salvando avaliação, aguarde' : ''}`}
+            accessibilityState={{
+              ...selectionAccessibilityState(value === star),
+              disabled,
+              ...loadingAccessibilityState(busy),
+            }}
+            {...(Platform.OS === 'web'
+              ? { 'aria-pressed': value === star, 'aria-busy': busy }
+              : {})}
+            aria-disabled={disabled}
             disabled={disabled}
-            onPress={() => onChange(star)}
+            onPress={() => {
+              if (busy || disabled) return;
+              if (value === star) {
+                announce(`Sua nota já é ${star} de 5 estrelas. Nenhuma alteração feita.`);
+              } else {
+                onChange(star);
+              }
+            }}
             style={({ pressed }) => [styles.star, { opacity: pressed ? 0.6 : 1 }]}
           >
             <Ionicons

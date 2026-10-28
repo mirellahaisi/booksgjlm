@@ -1,16 +1,7 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '../components/Icon';
 import type { RootStackParamList } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useLibrary } from '../contexts/LibraryContext';
@@ -20,6 +11,11 @@ import { BookGrid } from '../components/BookGrid';
 import { Button } from '../components/Button';
 import { EmptyState, ErrorBanner, Loading } from '../components/Feedback';
 import { colors, common, serif } from '../theme';
+import { Text, TextInput } from '../components/Typography';
+import { Checkbox } from '../components/Checkbox';
+import { LibraryStatus } from '../components/LibraryStatus';
+import { selectionAccessibilityState } from '../utils/accessibility';
+import { announce } from '../utils/announce';
 
 export function CatalogScreen({
   navigation,
@@ -39,6 +35,7 @@ export function CatalogScreen({
   );
   const header = (
     <View style={styles.header}>
+      <LibraryStatus />
       <View style={styles.welcome}>
         <View style={styles.greeting}>
           <Text style={common.eyebrow}>SUA BIBLIOTECA, DO SEU JEITO</Text>
@@ -68,28 +65,33 @@ export function CatalogScreen({
           <Text style={styles.heroCaption}>Milhões de histórias na Open Library</Text>
         </View>
       </View>
-      <View style={styles.collections}>
+      <View style={[styles.collections, small && styles.stacked]}>
         <Button
           label={`Favoritos · ${library.favorites.length}`}
           icon="heart-outline"
           variant="secondary"
           onPress={() => navigation.navigate('Favorites')}
-          style={styles.collectionButton}
+          style={small ? styles.stackedControl : styles.collectionButton}
         />
         <Button
           label={`Lidos · ${library.readBooks.length}`}
           icon="checkmark-done-outline"
           variant="secondary"
           onPress={() => navigation.navigate('ReadBooks')}
-          style={styles.collectionButton}
+          style={small ? styles.stackedControl : styles.collectionButton}
         />
       </View>
-      <View style={[styles.search, small && { flexDirection: 'column', alignItems: 'stretch' }]}>
-        <View style={styles.searchField}>
+      <View accessible={false} style={[styles.search, small && styles.stacked]}>
+        <View
+          accessible={false}
+          style={[styles.searchField, small ? styles.stackedControl : styles.searchFieldInline]}
+        >
           <Ionicons name="search-outline" size={21} color={colors.muted} accessible={false} />
           <TextInput
             accessible
-            accessibilityLabel="Buscar por título ou autor"
+            accessibilityLabel="Buscar livros"
+            accessibilityRole="search"
+            {...(Platform.OS === 'web' ? { role: 'searchbox' as const } : {})}
             value={term}
             onChangeText={setTerm}
             onSubmitEditing={submit}
@@ -101,20 +103,43 @@ export function CatalogScreen({
             maxLength={200}
           />
         </View>
-        <Button label="Buscar" loading={catalog.loading} onPress={submit} icon="search-outline" />
+        <Button
+          label="Buscar"
+          loading={catalog.loading}
+          loadingLabel="Buscando livros"
+          onPress={submit}
+          icon="search-outline"
+          style={small ? styles.stackedControl : undefined}
+        />
       </View>
-      <View style={styles.filters} accessibilityLabel="Filtrar por categoria">
+      <View style={styles.filters}>
         {categories.map((category) => (
           <Pressable
             key={category.id}
             accessible
+            accessibilityLanguage="pt-BR"
             accessibilityRole="button"
-            accessibilityLabel={`Categoria: ${category.label}`}
-            accessibilityState={{ selected: catalog.query.category === category.id }}
-            onPress={() => catalog.search({ ...catalog.query, category: category.id })}
+            role="button"
+            accessibilityLabel={`${category.label}${catalog.query.category === category.id ? '. Categoria atual' : ''}`}
+            accessibilityState={selectionAccessibilityState(catalog.query.category === category.id)}
+            {...(Platform.OS === 'web'
+              ? { 'aria-pressed': catalog.query.category === category.id }
+              : {})}
+            onPress={() => {
+              if (catalog.query.category === category.id) {
+                announce(`${category.label} já é a categoria atual.`);
+                return;
+              }
+              catalog.search({ ...catalog.query, category: category.id });
+              announce(`Categoria alterada para ${category.label}.`);
+            }}
             style={[styles.chip, catalog.query.category === category.id && styles.selectedChip]}
           >
             <Text
+              accessible={false}
+              aria-hidden
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
               style={[
                 styles.chipText,
                 catalog.query.category === category.id && { color: colors.paper },
@@ -125,29 +150,18 @@ export function CatalogScreen({
           </Pressable>
         ))}
       </View>
-      <Pressable
-        accessible
-        accessibilityRole="checkbox"
-        accessibilityLabel="Apenas livros com edição em português"
-        accessibilityState={{ checked: catalog.query.language === 'por' }}
-        onPress={() =>
+      <Checkbox
+        label="Com edição em português"
+        checked={catalog.query.language === 'por'}
+        onChange={(checked) =>
           catalog.search({
             ...catalog.query,
-            language: catalog.query.language === 'por' ? 'all' : 'por',
+            language: checked ? 'por' : 'all',
           })
         }
-        style={styles.language}
-      >
-        <Ionicons
-          name={catalog.query.language === 'por' ? 'checkbox' : 'square-outline'}
-          size={22}
-          color={colors.wine}
-          accessible={false}
-        />
-        <Text style={styles.languageText}>Com edição em português</Text>
-      </Pressable>
-      <View style={styles.results}>
-        <View style={{ flex: 1, gap: 6 }}>
+      />
+      <View style={[styles.results, small && styles.stacked]}>
+        <View style={{ flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 6 }}>
           <Text accessibilityRole="header" style={common.sectionTitle}>
             {catalog.query.term ? `Resultados para “${catalog.query.term}”` : 'Explore a estante'}
           </Text>
@@ -173,6 +187,7 @@ export function CatalogScreen({
           icon="refresh-outline"
           variant="quiet"
           loading={catalog.refreshing}
+          loadingLabel="Atualizando catálogo"
           disabled={catalog.loading}
           onPress={() => {
             catalog.refresh();
@@ -194,9 +209,6 @@ export function CatalogScreen({
       ) : catalog.hasMore && !catalog.loading && !catalog.error ? (
         <Button label="Carregar mais livros" variant="secondary" onPress={catalog.loadMore} />
       ) : null}
-      {library.syncStatus === 'syncing' && (
-        <ActivityIndicator color={colors.wine} accessibilityLabel="Sincronizando biblioteca" />
-      )}
       {library.syncStatus !== 'local' && (
         <Button
           label={
@@ -206,7 +218,8 @@ export function CatalogScreen({
           }
           variant="quiet"
           icon="cloud-outline"
-          disabled={library.syncStatus === 'syncing'}
+          loading={library.syncStatus === 'syncing'}
+          loadingLabel="Sincronizando estante"
           onPress={() => {
             void library.sync();
           }}
@@ -261,10 +274,18 @@ const styles = StyleSheet.create({
   heroFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
   heroCaption: { fontSize: 12, color: colors.sand, flexShrink: 1 },
   collections: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  stacked: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch' },
+  stackedControl: {
+    width: '100%',
+    alignSelf: 'stretch',
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  },
   collectionButton: { flexGrow: 1 },
   search: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   searchField: {
-    flex: 1,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
@@ -274,6 +295,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.sand,
   },
+  searchFieldInline: { flex: 1 },
   input: {
     flex: 1,
     minWidth: 0,
@@ -285,6 +307,8 @@ const styles = StyleSheet.create({
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     minHeight: 44,
+    minWidth: 44,
+    maxWidth: '100%',
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: colors.paper,
@@ -295,8 +319,6 @@ const styles = StyleSheet.create({
   },
   selectedChip: { backgroundColor: colors.wine, borderColor: colors.wine },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.ink },
-  language: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-  languageText: { color: colors.muted, fontSize: 14, flexShrink: 1 },
   results: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
   count: { color: colors.muted, fontSize: 13 },
   footer: { padding: 20, gap: 18, alignItems: 'center' },

@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/Typography';
+import { LibraryStatus } from '../components/LibraryStatus';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import { useLibrary } from '../contexts/LibraryContext';
@@ -22,6 +24,7 @@ export function CollectionScreen({
     : null;
   const header = (
     <View style={styles.header}>
+      <LibraryStatus />
       <Text style={common.eyebrow}>SUA ESTANTE PESSOAL</Text>
       <Text accessibilityRole="header" style={common.title}>
         {favorites ? 'Histórias que ficam.' : 'Páginas já vividas.'}

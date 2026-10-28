@@ -1,4 +1,5 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from './Typography';
 import { useLibrary } from '../contexts/LibraryContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './Button';

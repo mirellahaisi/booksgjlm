@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { CatalogScreen } from '../screens/CatalogScreen';
 import { CollectionScreen } from '../screens/CollectionScreen';
 import { DetailsScreen } from '../screens/DetailsScreen';
 import { EmptyState, Loading } from '../components/Feedback';
-import { LibraryStatus } from '../components/LibraryStatus';
+import { AccessibleHeader } from '../components/AccessibleHeader';
 import { Button } from '../components/Button';
 import { colors, common } from '../theme';
 
@@ -31,40 +31,48 @@ function AppStack() {
   const auth = useAuth();
   if (library.loading)
     return (
-      <View style={common.screen}>
-        <Loading label="Preparando sua biblioteca…" />
-      </View>
+      <SafeAreaView style={common.screen}>
+        <ScrollView>
+          <Loading label="Preparando sua biblioteca…" />
+        </ScrollView>
+      </SafeAreaView>
     );
   if (library.loadError)
     return (
       <SafeAreaView style={common.screen}>
-        <EmptyState
-          error
-          title="Sua biblioteca precisa de atenção"
-          message={library.loadError}
-          onAction={library.retryLoad}
-        />
-        <Button
-          label="Sair da conta"
-          variant="quiet"
-          onPress={() => {
-            void auth.logout();
-          }}
-        />
+        <ScrollView>
+          <EmptyState
+            error
+            title="Sua biblioteca precisa de atenção"
+            message={library.loadError}
+            onAction={library.retryLoad}
+          />
+          <Button
+            label="Sair da conta"
+            variant="quiet"
+            onPress={() => {
+              void auth.logout();
+            }}
+          />
+        </ScrollView>
       </SafeAreaView>
     );
   return (
     <View style={common.screen}>
-      <LibraryStatus />
       <Stack.Navigator
         screenOptions={{
+          header: (props) => <AccessibleHeader {...props} />,
           headerStyle: { backgroundColor: colors.wine },
           headerTintColor: colors.paper,
           headerBackTitle: 'Voltar',
           contentStyle: { backgroundColor: colors.cream },
         }}
       >
-        <Stack.Screen name="Catalog" component={CatalogScreen} options={{ title: 'GJLM Books' }} />
+        <Stack.Screen
+          name="Catalog"
+          component={CatalogScreen}
+          options={{ title: 'Catálogo · GJLM Books' }}
+        />
         <Stack.Screen
           name="Favorites"
           component={CollectionScreen}
@@ -89,18 +97,22 @@ export function RootNavigator() {
   if (auth.loading)
     return (
       <SafeAreaView style={common.screen}>
-        <Loading label="Abrindo sua estante…" />
+        <ScrollView>
+          <Loading label="Abrindo sua estante…" />
+        </ScrollView>
       </SafeAreaView>
     );
   if (auth.bootError)
     return (
       <SafeAreaView style={common.screen}>
-        <EmptyState
-          error
-          title="Não foi possível iniciar"
-          message={auth.bootError}
-          onAction={auth.retry}
-        />
+        <ScrollView>
+          <EmptyState
+            error
+            title="Não foi possível iniciar"
+            message={auth.bootError}
+            onAction={auth.retry}
+          />
+        </ScrollView>
       </SafeAreaView>
     );
   return (

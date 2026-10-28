@@ -1,8 +1,16 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from './Typography';
+import { Ionicons } from './Icon';
 import type { Book } from '../types';
 import { BookCover } from './BookCover';
 import { colors, serif } from '../theme';
+import {
+  decorativeAccessibility,
+  favoriteControlLabel,
+  cardAccessibilityLabel,
+  loadingAccessibilityState,
+  selectionAccessibilityState,
+} from '../utils/accessibility';
 
 interface Props {
   book: Book;
@@ -19,24 +27,46 @@ export function BookCard({ book, favorite, read, rating, saving, onOpen, onFavor
     <View style={styles.card}>
       <Pressable
         accessible
+        accessibilityLanguage="pt-BR"
         accessibilityRole="button"
-        accessibilityLabel={`Ver detalhes de ${book.title}, ${book.authors.join(', ') || 'autoria não informada'}`}
+        role="button"
+        accessibilityLabel={cardAccessibilityLabel(book, { favorite, read, rating })}
         onPress={onOpen}
         style={({ pressed }) => [styles.main, { opacity: pressed ? 0.75 : 1 }]}
       >
-        <View style={styles.cover}>
-          <BookCover coverId={book.coverId} title={book.title} />
+        <View
+          style={styles.cover}
+          accessible={false}
+          collapsable={false}
+          aria-hidden
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <BookCover coverId={book.coverId} title={book.title} decorative />
         </View>
-        <View style={styles.text}>
-          <Text style={styles.title}>{book.title}</Text>
-          <Text style={styles.author}>{book.authors.join(', ') || 'Autoria não informada'}</Text>
+        <View
+          style={styles.text}
+          accessible={false}
+          collapsable={false}
+          aria-hidden
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Text {...decorativeAccessibility} style={styles.title}>
+            {book.title}
+          </Text>
+          <Text {...decorativeAccessibility} style={styles.author}>
+            {book.authors.join(', ') || 'Autoria não informada'}
+          </Text>
           {book.firstPublishYear !== null && (
-            <Text style={styles.year}>{book.firstPublishYear}</Text>
+            <Text {...decorativeAccessibility} style={styles.year}>
+              {book.firstPublishYear}
+            </Text>
           )}
         </View>
       </Pressable>
       <View style={styles.bottom}>
-        <View style={styles.read}>
+        <View style={styles.read} {...decorativeAccessibility} collapsable={false}>
           {read ? (
             <Text
               style={styles.readText}
@@ -52,11 +82,22 @@ export function BookCard({ book, favorite, read, rating, saving, onOpen, onFavor
         </View>
         <Pressable
           accessible
+          accessibilityLanguage="pt-BR"
           accessibilityRole="button"
-          accessibilityLabel={`${favorite ? 'Remover dos' : 'Adicionar aos'} favoritos: ${book.title}`}
-          accessibilityState={{ selected: favorite, disabled: saving }}
-          disabled={saving}
-          onPress={onFavorite}
+          role="button"
+          accessibilityLabel={
+            saving
+              ? `Salvando favoritos de ${book.title}`
+              : favoriteControlLabel(book.title, favorite)
+          }
+          accessibilityState={{
+            ...selectionAccessibilityState(favorite),
+            ...loadingAccessibilityState(saving),
+          }}
+          {...(Platform.OS === 'web' ? { 'aria-pressed': favorite, 'aria-busy': saving } : {})}
+          onPress={() => {
+            if (!saving) onFavorite();
+          }}
           hitSlop={4}
           style={({ pressed }) => [
             styles.heart,

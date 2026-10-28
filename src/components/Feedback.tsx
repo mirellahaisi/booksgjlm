@@ -1,7 +1,9 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from './Typography';
+import { Ionicons } from './Icon';
 import { Button } from './Button';
 import { colors, common } from '../theme';
+import { decorativeAccessibility, loadingAccessibilityState } from '../utils/accessibility';
 
 export function Loading({ label = 'Carregando…' }: { label?: string }) {
   return (
@@ -10,10 +12,12 @@ export function Loading({ label = 'Carregando…' }: { label?: string }) {
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label}
-      accessibilityState={{ busy: true }}
+      accessibilityState={loadingAccessibilityState(true)}
     >
-      <ActivityIndicator size="large" color={colors.wine} />
-      <Text style={common.subtitle}>{label}</Text>
+      <ActivityIndicator {...decorativeAccessibility} size="large" color={colors.wine} />
+      <Text {...decorativeAccessibility} style={common.subtitle}>
+        {label}
+      </Text>
     </View>
   );
 }

@@ -2,6 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { announce } from '../src/utils/announce';
 import type { Book, SessionUser } from '../src/types';
 import {
   emptyLibrary,
@@ -13,6 +14,8 @@ import {
 } from '../src/services/libraryStorage';
 import { reconcileSync } from '../src/services/cloudLibrary';
 import { LibraryProvider, useLibrary } from '../src/contexts/LibraryContext';
+
+vi.mock('../src/utils/announce', () => ({ announce: vi.fn() }));
 
 const book: Book = {
   id: 'OL1W',
@@ -94,8 +97,78 @@ describe('biblioteca persistente', () => {
     await act(() => result.current.toggleFavorite(book));
     expect(result.current.favorites).toHaveLength(0);
     expect(result.current.saveError).toBeTruthy();
+    expect(announce).not.toHaveBeenCalled();
     act(() => result.current.retrySave());
     await waitFor(() => expect(result.current.favorites).toHaveLength(1));
     expect(result.current.saveError).toBeNull();
+    expect(announce).toHaveBeenCalledExactlyOnceWith('Livro: adicionado aos favoritos.', {
+      interrupt: true,
+    });
+  });
+
+  it('recupera a biblioteca após uma falha de leitura, sem perder os dados salvos', async () => {
+    await writeLibrary(
+      user,
+      updateEntry(emptyLibrary(), book, { favorite: true, read: true, rating: 4 }, false),
+    );
+    vi.mocked(AsyncStorage.getItem).mockRejectedValueOnce(new Error('armazenamento indisponível'));
+    const { result } = renderHook(useLibrary, { wrapper });
+    await waitFor(() => expect(result.current.loadError).toBeTruthy());
+    act(() => result.current.retryLoad());
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.loadError).toBeNull();
+    expect(result.current.favorites).toHaveLength(1);
+    expect(result.current.readBooks[0].rating).toBe(4);
+    expect(announce).not.toHaveBeenCalled();
+    await act(() => result.current.toggleFavorite(book));
+    expect(result.current.favorites).toHaveLength(0);
+  });
+
+  it('confirma cada mudança somente depois de salvar, sem anunciar a hidratação', async () => {
+    const { result } = renderHook(useLibrary, { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(announce).not.toHaveBeenCalled();
+    let finishWrite!: () => void;
+    vi.mocked(AsyncStorage.setItem).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishWrite = resolve;
+        }),
+    );
+    let operation = Promise.resolve();
+    act(() => {
+      operation = result.current.toggleFavorite(book);
+    });
+    await waitFor(() => expect(finishWrite).toBeDefined());
+    expect(result.current.favorites).toHaveLength(0);
+    expect(announce).not.toHaveBeenCalled();
+    await act(async () => {
+      finishWrite();
+      await operation;
+    });
+    expect(announce).toHaveBeenCalledExactlyOnceWith('Livro: adicionado aos favoritos.', {
+      interrupt: true,
+    });
+    await act(() => result.current.toggleFavorite(book));
+    expect(announce).toHaveBeenLastCalledWith('Livro: removido dos favoritos.', {
+      interrupt: true,
+    });
+    await act(() => result.current.toggleRead(book));
+    expect(announce).toHaveBeenLastCalledWith('Livro: marcado como lido.', { interrupt: true });
+    await act(() => result.current.rateBook(book, 4));
+    expect(announce).toHaveBeenLastCalledWith('Livro: nota salva: 4 de 5 estrelas.', {
+      interrupt: true,
+    });
+    await act(() => result.current.rateBook(book, 2));
+    expect(announce).toHaveBeenLastCalledWith('Livro: nota salva: 2 de 5 estrelas.', {
+      interrupt: true,
+    });
+    await act(() => result.current.toggleRead(book));
+    expect(announce).toHaveBeenLastCalledWith('Livro: marcado como não lido. Sem avaliação.', {
+      interrupt: true,
+    });
+    expect(result.current.entries.OL1W.rating).toBeNull();
+    expect(announce).toHaveBeenCalledTimes(6);
   });
 });

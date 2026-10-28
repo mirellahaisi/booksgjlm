@@ -38,7 +38,14 @@ export function BookGrid({
       keyExtractor={(book) => book.id}
       extraData={library.entries}
       style={styles.list}
-      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 24 }]}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingBottom: Math.max(insets.bottom, 16) + 24,
+          paddingLeft: Math.max(insets.left, 12),
+          paddingRight: Math.max(insets.right, 12),
+        },
+      ]}
       ListHeaderComponent={header}
       ListEmptyComponent={empty}
       ListFooterComponent={footer}
@@ -49,6 +56,7 @@ export function BookGrid({
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={7}
+      removeClippedSubviews={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       renderItem={({ item }) => {
