@@ -1,0 +1,38 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "GJLM Books: Celular (Expo Go)",
+			"type": "shell",
+			"command": "npm",
+			"args": ["--prefix", "gjlm-books", "start"],
+			"options": { "cwd": "${workspaceFolder}" },
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "GJLM Books: Verificar projeto",
+			"type": "shell",
+			"command": "npm",
+			"args": ["--prefix", "gjlm-books", "run", "check"],
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": []
+		},
+		{
+			"label": "GJLM Books: Expo Web",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"gjlm-books",
+				"run",
+				"web",
+				"--",
+				"--port",
+				"8081"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
