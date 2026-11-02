@@ -1,3 +1,4 @@
+
 # Catálogo Interativo 2.0 — GJLM Books
 
 Aplicativo de livros em **React Native + Expo + TypeScript**, com dados públicos da
@@ -5,12 +6,47 @@ Aplicativo de livros em **React Native + Expo + TypeScript**, com dados público
 livros, explorar um catálogo paginado, guardar favoritos, registrar leituras e
 avaliar cada livro de 1 a 5 estrelas.
 
-## Relação com o trabalho anterior
+## Como executar
 
-O [GJLM Gallery](https://github.com/leostall/gjlm-gallery) é a referência de estrutura
-funcional. Aquele projeto usa Flutter e obras de arte do Cleveland Museum of Art.
-Este usa React Native e livros da Open Library: **o tema e a API são diferentes**.
-A busca aqui apresenta uma lista de resultados; a pessoa escolhe qual livro abrir.
+### Pré-requisitos
+
+- Node.js 24.12.0 ou superior e npm.
+- Git para clonar o repositório.
+- Expo Go compatível com o projeto, instalado no celular, ou um emulador/simulador configurado.
+- Conexão com a internet para consultar os livros da Open Library.
+
+### Instalação e inicialização
+
+Clone o repositório, acesse a pasta do projeto, instale as dependências e inicie o Expo:
+
+```bash
+git clone https://github.com/mirellahaisi/booksgjlm.git
+cd booksgjlm
+npm ci
+npx expo start
+```
+
+Após iniciar o Expo, será exibido um QR Code no terminal. Escaneie o código com o Expo Go para abrir o aplicativo no celular.
+
+O celular e o computador devem estar na mesma rede. Caso haja problemas de conexão, tente:
+
+```bash
+npx expo start --tunnel
+```
+
+Também é possível executar o aplicativo em um ambiente configurado:
+
+```bash
+npm run android
+npm run ios
+npm run web
+```
+
+### Configuração
+
+O aplicativo funciona no modo local, sem necessidade de configurar o Firebase ou criar um arquivo `.env`.
+
+Para utilizar os recursos de autenticação e sincronização com Firebase, é necessário configurar as variáveis disponíveis no arquivo `.env.example`.
 
 ## Organização
 
@@ -35,4 +71,3 @@ A busca aqui apresenta uma lista de resultados; a pessoa escolhe qual livro abri
   usando o tamanho `L` nos detalhes.
 - A API não exige chave para essas consultas. Títulos e descrições mantêm o
   idioma fornecido; HTML e links Markdown são limpos antes de exibir.
-
